@@ -51,7 +51,7 @@ class Command:
         self.dataArray      : Iterable[float, int]  = []
         self.datatypeArray  : Iterable[Datatype]    = []
 
-class Parameter:
+class Variable:
 
     def __init__(self, number : int, type : Datatype, description : Optional[str] = None):
         self.description    : Optional[str] = description
@@ -77,7 +77,7 @@ class SCI:
 
 
     #==============================================================================
-    def __init__(self, port, maxPacketSize, baud : int = 115200, timeout : float = 1, numberFormat : NumberFormat = NumberFormat.HEX):
+    def __init__(self, port : str, maxPacketSize : int, baud : int = 115200, timeout : float = 1, numberFormat : NumberFormat = NumberFormat.HEX):
 
         self.ressourceLock = threading.Lock()
 
@@ -312,22 +312,22 @@ class SCI:
         return data
 
     #==============================================================================
-    def setvalue(self, parameter : Parameter, value : Union[float, int]):
+    def setvalue(self, variable : Variable, value : Union[float, int]):
         """
         Sets a variable of the variable struct
 
         Parameters:
         -----------
-        - parameter : Parameter object of the variable to set
+        - variable  : Object of the variable to set
         - value     : Value to set
         """
 
         # Construct command
         cmd = Command()
-        cmd.number      = parameter.number
+        cmd.number      = variable.number
         cmd.commandID   = CommandID.SETVAR
         cmd.dataArray   = [value]
-        cmd.datatypeArray  = [parameter.type]
+        cmd.datatypeArray  = [variable.type]
         response        = None
         
         # Query is allowed just once at a time!
@@ -349,13 +349,13 @@ class SCI:
             raise Exception('SETVALUE - Variable unknown')
 
 
-    def getvalue(self, parameter : Parameter) -> Union[float,int]:
+    def getvalue(self, variable : Variable) -> Union[float,int]:
         """
         Requests a variable value from the variable struct.
 
         Parameters:
         -----------
-        - parameter: Parameter object of the variable to request
+        - variable: Object of the variable to request
 
         Returns:
         --------
@@ -364,7 +364,7 @@ class SCI:
         
         # Construct command
         cmd = Command()
-        cmd.number      = parameter.number
+        cmd.number      = variable.number
         cmd.commandID   = CommandID.GETVAR
         response        = None
         
@@ -381,7 +381,7 @@ class SCI:
         rsp = self._decode(bytearray(response), cmd.commandID)
 
         if rsp.responseDesignator == 'ACK':
-            return self._reinterpretDecodedIntToDtype(rsp.dataArray[0], parameter.type)
+            return self._reinterpretDecodedIntToDtype(rsp.dataArray[0], variable.type)
         elif rsp.responseDesignator == 'ERR':
             raise Exception(f'GETVALUE - Error: {rsp.dataArray[0]}')
         elif rsp.responseDesignator == 'NAK':

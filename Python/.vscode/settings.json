@@ -1,0 +1,5 @@
+{
+    "python.linting.pylintArgs": [
+        "--init-hook=\"import sys; sys.path.append('D:/Git/SCI_Master/Python')"
+    ],
+}
