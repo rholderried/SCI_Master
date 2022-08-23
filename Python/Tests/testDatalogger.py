@@ -4,29 +4,30 @@ sys.path.append(os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
 from SCI import Datatype, SCI, Variable
 from Datalogger import Datalogger
 from time import sleep
+import matplotlib.pyplot as plt
 
-cur_A = Variable(1, Datatype.DTYPE_UINT16, 'phase A current, in Q format')
-cur_B = Variable(2, Datatype.DTYPE_UINT16, 'phase B current, in Q format')
-cur_C = Variable(3, Datatype.DTYPE_UINT16, 'phase C current, in Q format')
+cur_A = Variable(1, Datatype.DTYPE_INT16, 'phase A current, in Q format')
+cur_B = Variable(2, Datatype.DTYPE_INT16, 'phase B current, in Q format')
+cur_C = Variable(3, Datatype.DTYPE_INT16, 'phase C current, in Q format')
 
 sciHdl = SCI('COM27', 128)
-dlogHdl = Datalogger(sciHdl, 0, 256)
+dlogHdl = Datalogger(sciHdl, 0, 15000, os.path.join(os.path.realpath(os.path.join(os.path.dirname(__file__))), 'DataloggerCfg.py'))
 
-dlogHdl.assignCmdNumbers(   cmdNumGetDataloggerVersion=5, 
-                            cmdNumRegisterLogFromVarStruct=7, 
-                            cmdNumInitializeDatalogger=9, 
-                            cmdNumStartDatalogger=10, 
-                            cmdNumGetLogData=12)
-dlogHdl.getVersion()
-
-dlogHdl.register(cur_A, 10, 1)
-dlogHdl.register(cur_B, 10, 1)
-dlogHdl.register(cur_C, 10, 1)
+dlogHdl.reset()
+dlogHdl.register(cur_A, 2500, 8)
+dlogHdl.register(cur_B, 2500, 8)
+dlogHdl.register(cur_C, 2500, 8)
 
 dlogHdl.initializeLogger()
 
 dlogHdl.start()
-sleep(0.5)
+sleep(2)
 
 data = dlogHdl.getData()
-print(data)
+
+timebaseCh1 = [1/dlogHdl.baseFrequency_Hz * data[0].divider * i for i in range(0,len(data[0].data))]
+timebaseCh2 = [1/dlogHdl.baseFrequency_Hz * data[1].divider * i for i in range(0,len(data[1].data))]
+timebaseCh3 = [1/dlogHdl.baseFrequency_Hz * data[2].divider * i for i in range(0,len(data[2].data))]
+
+plt.plot(timebaseCh1, data[0].data, timebaseCh2, data[1].data, timebaseCh3, data[2].data)
+plt.show()

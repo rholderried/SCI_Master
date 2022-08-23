@@ -75,9 +75,8 @@ class SCI:
     STX = 2
     ETX = 3
 
-
     #==============================================================================
-    def __init__(self, port : str, maxPacketSize : int, baud : int = 115200, timeout : float = 1, numberFormat : NumberFormat = NumberFormat.HEX):
+    def __init__(self, port : str, maxPacketSize : int, baud : int = 115200, timeout : float = 5, numberFormat : NumberFormat = NumberFormat.HEX):
 
         self.ressourceLock = threading.Lock()
 
@@ -415,21 +414,33 @@ class SCI:
         with self.ressourceLock:
 
             while (len(data) < upstreamSize):
+                remainingData = (upstreamSize - len(data))
 
+                if (remainingData >= self.maxPacketSize):
+                    rspDatLen = self.maxPacketSize
+                else:
+                    rspDatLen =  remainingData
+
+                rspDatLen += 2 # Take care for STX and ETX
+                
+                # Send the request
                 packet = self._encode(cmd)
                 self.device.flush()
                 self._send(packet)
 
                 # TODO: This has to be replaced by a function reading number of bytes if the upstream has been switched to binary format
-                response = self.device.read_until(b'\x03')
+                # response = self.device.read_until(b'\x03')
+                response = self.device.read(size = rspDatLen)
 
-                if len(response) == 0:
+                if len(response) < rspDatLen:
                     raise Exception('UPSTREAM REQUEST - Timeout occured')
 
-                rsp = self._decode(bytearray(response), cmd.commandID)
+                 # Remove STX and ETX
+                response = bytearray(response[1 : -1])
+
+                # rsp = self._decode(bytearray(response), cmd.commandID)
                 
-                # Here we also land if the response designator is None
-                data.extend(rsp.upstreamData.copy())
+                data.extend(response.copy())
                 # Sleep time necessary for reliable data transmission
                 time.sleep(0.01)
 
