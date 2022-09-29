@@ -10,13 +10,22 @@ cur_A = Variable(1, Datatype.DTYPE_INT16, 'phase A current, in Q format')
 cur_B = Variable(2, Datatype.DTYPE_INT16, 'phase B current, in Q format')
 cur_C = Variable(3, Datatype.DTYPE_INT16, 'phase C current, in Q format')
 
+hallSector = Variable(4, Datatype.DTYPE_INT8, 'Hall decoder sector')
+hallPos = Variable(5, Datatype.DTYPE_INT32, 'Hall decoder position')
+
+sixStepVector = Variable(6, Datatype.DTYPE_UINT8, 'Vector determined by six step module')
+sixStepOut = Variable(7, Datatype.DTYPE_UINT16, 'Output value of the six step module')
+
 sciHdl = SCI('COM27', 128)
 dlogHdl = Datalogger(sciHdl, 0, 15000, os.path.join(os.path.realpath(os.path.join(os.path.dirname(__file__))), 'DataloggerCfg.py'))
 
 dlogHdl.reset()
-dlogHdl.register(cur_A, 2500, 8)
-dlogHdl.register(cur_B, 2500, 8)
-dlogHdl.register(cur_C, 2500, 8)
+dlogHdl.register(cur_A, 2500, 1)
+dlogHdl.register(cur_B, 2500, 1)
+dlogHdl.register(cur_C, 2500, 1)
+# dlogHdl.register(hallSector, 1250, 16)
+# dlogHdl.register(sixStepVector, 1250, 16)
+
 
 dlogHdl.initializeLogger()
 
