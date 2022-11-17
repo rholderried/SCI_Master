@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Unittest",
+            "includePath": [
+                "${workspaceFolder}/C/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "C:\\MinGW64\\bin\\gcc.exe",
+            "cStandard": "c99",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}
