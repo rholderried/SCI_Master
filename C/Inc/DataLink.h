@@ -36,10 +36,11 @@ typedef bool(*GET_BUSY_STATE_CB)(void);
 
 typedef enum
 {
-    eDATALINK_RSTATE_ERROR     = -1,
+    eDATALINK_RSTATE_ERROR      = -1,
     eDATALINK_RSTATE_IDLE       = 0,
-    eDATALINK_RSTATE_BUSY       = 1,
-    eDATALINK_RSTATE_PENDING    = 2
+    eDATALINK_RSTATE_WAIT_STX   = 1,
+    eDATALINK_RSTATE_BUSY       = 2,
+    eDATALINK_RSTATE_PENDING    = 3
 }teDATALINK_RECEIVE_STATE;
 
 typedef enum
@@ -87,7 +88,7 @@ typedef struct
 
 }tsDATALINK;
 
-#define tsDATALINK_DEFAULT {eDATALINK_RSTATE_IDLE, eDATALINK_TSTATE_IDLE, eDATALINK_DBGSTATE_IDLE, {NULL}, NULL, NULL, NULL, {NULL, 0}}
+#define tsDATALINK_DEFAULTS {eDATALINK_RSTATE_IDLE, eDATALINK_TSTATE_IDLE, eDATALINK_DBGSTATE_IDLE, {NULL}, NULL, NULL, NULL, {NULL, 0}}
 
 
 
@@ -102,6 +103,7 @@ bool SCIDatalinkTransmit(tsDATALINK *p_inst, tsFIFO_BUF * p_tBuf);//uint8_t *pui
 void SCITransmitStateMachine(tsDATALINK *p_inst);
 void SCIDatalinkAcknowledgeRx(tsDATALINK *p_inst);
 void SCIDatalinkAcknowledgeTx(tsDATALINK *p_inst);
+void SCIDatalinkStartRx(tsDATALINK *p_inst);
 
 
 

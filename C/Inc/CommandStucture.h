@@ -22,14 +22,7 @@
 /******************************************************************************
  * Type definitions
  *****************************************************************************/
-typedef enum
-{
-    eCOMMAND_STATUS_SUCCESS             = 0,
-    eCOMMAND_STATUS_SUCCESS_DATA        = 1,
-    eCOMMAND_STATUS_SUCCESS_UPSTREAM    = 2,
-    eCOMMAND_STATUS_ERROR               = 3,
-    eCOMMAND_STATUS_UNKNOWN             = 4
-}COMMAND_CB_STATUS;
+
 
 typedef struct
 {
@@ -51,17 +44,5 @@ typedef struct
 }PROCESS_INFO;
 
 #define PROCESS_INFO_DEFAULT {{.ui8_infoFlagByte = 0}, NULL, NULL, 0, 0}
-
-/** \brief Command structure member.
- * 
- * @param pf_valArray       pointer to an Array of parameters to be passed. nullptr if there are none.
- * @param ui8_valArrayLen   Length of the value array.
- * @returns Command execution success indicator.
-*/
-#ifdef VALUE_MODE_HEX
-typedef COMMAND_CB_STATUS(*COMMAND_CB)(uint32_t* pui32_valArray, uint8_t ui8_valArrayLen, PROCESS_INFO *p_info);
-#else
-typedef COMMAND_CB_STATUS(*COMMAND_CB)(float* pf_valArray, uint8_t ui8_valArrayLen, PROCESS_INFO *p_info);
-#endif
 
 #endif // _COMMANDSTRUCTURE_H_

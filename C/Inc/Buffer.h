@@ -35,7 +35,7 @@ typedef struct
     bool        b_ovfl;         /*!< Overflow indicator. */
 }tsFIFO_BUF;
 
-#define FIFO_BUF_DEFAULT {NULL, 0, 0, 0, false}
+#define tsFIFO_BUF_DEFAULTS {NULL, 0, 0, 0, false}
 
 /******************************************************************************
  * Function declaration

@@ -25,7 +25,7 @@ void SCIDataLinkReceive(tsDATALINK *p_inst, tsFIFO_BUF *p_rBuf, uint8_t ui8_data
 {
     if (ui8_data == STX)
     {
-        if (p_inst->rState == eDATALINK_RSTATE_IDLE)
+        if (p_inst->rState == eDATALINK_RSTATE_WAIT_STX)
         {
             flushBuf(p_rBuf);
             p_inst->rState = eDATALINK_RSTATE_BUSY;
@@ -130,6 +130,7 @@ bool SCIDatalinkTransmit(tsDATALINK *p_inst, tsFIFO_BUF * p_tBuf)
 //=============================================================================
 void SCITransmitStateMachine(tsDATALINK *p_inst)
 {    
+    // Prevent from entering this function if the Tx interface is still busy
     if (p_inst->txGetBusyStateCallback != NULL)
         if (p_inst->txGetBusyStateCallback())
             return;
@@ -195,4 +196,10 @@ void SCIDatalinkAcknowledgeRx(tsDATALINK *p_inst)
 void SCIDatalinkAcknowledgeTx(tsDATALINK *p_inst)
 {
     p_inst->tState = eDATALINK_TSTATE_IDLE;
+}
+
+//=============================================================================
+void SCIDatalinkStartRx(tsDATALINK *p_inst)
+{
+    p_inst->tState = eDATALINK_RSTATE_WAIT_STX;
 }

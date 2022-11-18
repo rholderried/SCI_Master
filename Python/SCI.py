@@ -39,7 +39,7 @@ class Datatype(Enum):
 class Response:
     def __init__(self):
         self.number             : Optional[int]           = None
-        self.responseDesignator : Optional[str]           = None
+        self.acknowledge        : Optional[str]           = None
         self.dataLength         : Optional[int]           = None
         self.dataArray          : List[Union[float, int]] = []
         self.upstreamData       : bytearray               = bytearray([])
@@ -128,7 +128,7 @@ class SCI:
 
         # Special case: Message is an upstream, so there is no response designator
         if (cmdID.name) != 'UPSTREAM' and ongoing == False:
-            rsp.responseDesignator = msgDat[0]
+            rsp.acknowledge = msgDat[0]
         elif cmdID.name == 'UPSTREAM':
             # Encode data into bytearray
             rsp.upstreamData = bytearray.fromhex(msgDat[0])
@@ -283,15 +283,15 @@ class SCI:
                 rsp = self._decode(bytearray(response), cmd.commandID, ongoing)
 
                 # This command does not need further processing
-                if rsp.responseDesignator == 'ACK':
+                if rsp.acknowledge == 'ACK':
                     break
-                elif rsp.responseDesignator == 'UPS':
+                elif rsp.acknowledge == 'UPS':
                     return rsp.dataLength
-                elif rsp.responseDesignator == 'ERR':
+                elif rsp.acknowledge == 'ERR':
                     raise Exception(f'COMMAND - Error: {rsp.dataArray[0]}')
-                elif rsp.responseDesignator == 'NAK':
+                elif rsp.acknowledge == 'NAK':
                     raise Exception('COMMAND - Unknown Command')
-                # elif rsp.responseDesignator == 'DAT':
+                # elif rsp.acknowledge == 'DAT':
                 #     expectedDatalen = rsp.dataLength
                 
                 # Here we also land if the response designator is None
@@ -340,11 +340,11 @@ class SCI:
             raise Exception('SETVALUE - Timeout occured')
         rsp = self._decode(bytearray(response), cmd.commandID)
 
-        if rsp.responseDesignator == 'ACK':
+        if rsp.acknowledge == 'ACK':
             return
-        elif rsp.responseDesignator == 'ERR':
+        elif rsp.acknowledge == 'ERR':
             raise Exception(f'SETVALUE - Error: {rsp.dataArray[0]}')
-        elif rsp.responseDesignator == 'NAK':
+        elif rsp.acknowledge == 'NAK':
             raise Exception('SETVALUE - Variable unknown')
 
 
@@ -379,11 +379,11 @@ class SCI:
 
         rsp = self._decode(bytearray(response), cmd.commandID)
 
-        if rsp.responseDesignator == 'ACK':
+        if rsp.acknowledge == 'ACK':
             return self._reinterpretDecodedIntToDtype(rsp.dataArray[0], variable.type)
-        elif rsp.responseDesignator == 'ERR':
+        elif rsp.acknowledge == 'ERR':
             raise Exception(f'GETVALUE - Error: {rsp.dataArray[0]}')
-        elif rsp.responseDesignator == 'NAK':
+        elif rsp.acknowledge == 'NAK':
             raise Exception('GETVALUE - Variable unknown')
 
 
