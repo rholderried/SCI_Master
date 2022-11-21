@@ -1,5 +1,5 @@
 /**************************************************************************//**
- * \file DataLink.h
+ * \file SCIDataLink.h
  * \author Roman Holderried
  *
  * \brief Data link layer functionality for the SCI protocol.
@@ -7,8 +7,8 @@
  * <b> History </b>
  * 	- 2022-11-17 - Copy from SCI
  *****************************************************************************/
-#ifndef _DATALINK_H_
-#define _DATALINK_H_
+#ifndef _SCIDATALINK_H_
+#define _SCIDATALINK_H_
 
 /******************************************************************************
  * Includes
@@ -100,7 +100,7 @@ teDATALINK_RECEIVE_STATE SCIDatalinkGetReceiveState(tsDATALINK *p_inst);
 teDATALINK_TRANSMIT_STATE SCIDatalinkGetTransmitState(tsDATALINK *p_inst);
 
 bool SCIDatalinkTransmit(tsDATALINK *p_inst, tsFIFO_BUF * p_tBuf);//uint8_t *pui8_buf, uint8_t ui8_bufLen);
-void SCITransmitStateMachine(tsDATALINK *p_inst);
+void SCIDatalinkTransmitStateMachine(tsDATALINK *p_inst);
 void SCIDatalinkAcknowledgeRx(tsDATALINK *p_inst);
 void SCIDatalinkAcknowledgeTx(tsDATALINK *p_inst);
 void SCIDatalinkStartRx(tsDATALINK *p_inst);
@@ -108,4 +108,4 @@ void SCIDatalinkStartRx(tsDATALINK *p_inst);
 
 
 
-#endif // _DATALINK_H_
+#endif // _SCIDATALINK_H_

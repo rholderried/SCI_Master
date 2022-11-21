@@ -1,5 +1,5 @@
 /**************************************************************************//**
- * \file DataLink.c
+ * \file SCIDataLink.c
  * \author Roman Holderried
  *
  * \brief Data link layer functionality for the SCI protocol.
@@ -13,7 +13,7 @@
  *****************************************************************************/
 #include <stdint.h>
 #include <stddef.h>
-#include "DataLink.h"
+#include "SCIDataLink.h"
 #include "Buffer.h"
 #include "SCIMasterConfig.h"
 
@@ -128,7 +128,7 @@ bool SCIDatalinkTransmit(tsDATALINK *p_inst, tsFIFO_BUF * p_tBuf)
 }
 
 //=============================================================================
-void SCITransmitStateMachine(tsDATALINK *p_inst)
+void SCIDatalinkTransmitStateMachine(tsDATALINK *p_inst)
 {    
     // Prevent from entering this function if the Tx interface is still busy
     if (p_inst->txGetBusyStateCallback != NULL)

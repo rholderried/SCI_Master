@@ -21,9 +21,9 @@
  *****************************************************************************/
 #include <stdint.h>
 #include <stdbool.h>
-#include "SCIRequests.h"
+#include "SCITransfer.h"
 #include "Buffer.h"
-#include "DataLink.h"
+#include "SCIDataLink.h"
 
 /******************************************************************************
  * Defines
@@ -63,17 +63,6 @@ typedef enum
     ePROTOCOL_RECEIVING     = 3,
 }tePROTOCOL_STATE;
 
-// typedef enum
-// {
-//     eSCI_ERROR_NONE = 0,
-//     eSCI_ERROR_TRANSMISSION_ERROR,
-//     eSCI_ERROR_RECEIVE_ERROR,
-//     eSCI_ERROR_DATAFRAME_ERROR
-
-//     // eSCI_ERROR_
-// }teSCI_ERROR;
-
-
 typedef struct
 {
     void (*commandCallback)(teREQUEST_TYPE eReqType, int16_t i16ReqNum, tuREQUESTVALUE *uVal, int16_t i16ArgNum);
@@ -94,6 +83,8 @@ typedef struct
     tsDATALINK     sDatalink;
     // SCI_COMMANDS sciCommands;   /*!< Commands variable structure. */
 
+    tsSCI_TRANSFER sSCITransfer;
+
 }tsSCI_MASTER;
 
 #define tsSCI_MASTER_DEFAULTS { \
@@ -102,7 +93,8 @@ typedef struct
     {0},{0}, \
     tsFIFO_BUF_DEFAULTS, \
     tsFIFO_BUF_DEFAULTS, \
-    tsDATALINK_DEFAULTS \
+    tsDATALINK_DEFAULTS, \
+    tsSCI_TRANSFER_DEFAULTS \
 }
 
 /******************************************************************************
@@ -112,7 +104,7 @@ typedef struct
  * 
  * Handles the SCI protocol.
 */
-void SCIMasterSM (tsSCI_MASTER *psSciMaster);
+void SCIMasterSM (void);
 
 /** \brief Non blocking SCI data transmission.
  * 
@@ -122,28 +114,13 @@ void SCIMasterSM (tsSCI_MASTER *psSciMaster);
  * @param i16Num    Command number
  * @param uVal      Pointer to the values to be sent
 */
-void _SCIMasterQueryNonBlocking (tsSCI_MASTER *psSciMaster, teREQUEST_TYPE eCmdType, int16_t i16CmdNum, tuREQUESTVALUE *uVal, int16_t i16ArgNum);
+void _SCIMasterQueryNonBlocking (teREQUEST_TYPE eCmdType, int16_t i16CmdNum, tuREQUESTVALUE *uVal, int16_t i16ArgNum);
 
-/** \brief Formulates the dataframe of an SCI Request.
+/** \brief High level receive routine.
  * 
- * @param pui8Buf       Pointer to the message buffer
- * @param pui8Size      Pointer to a variable that holds the actual byte count of the packet
- * @param sReq          Structure of type tsREQUEST holding all the relevant data
- * 
- * @returns Error indicator
+ * @param pui8RecBuf    Pointer to the receive buffer or FIFO
+ * @param ui8ByteCount  Number of bytes to process
 */
-teSCI_ERROR _SCIMasterRequestBuilder(uint8_t *pui8Buf, uint8_t *pui8Size, tsREQUEST sReq);
-
-/** \brief Parses the SCI response from the device.
- * 
- * @param pui8Buf       Pointer to the message buffer
- * @param ui8MsgSize    Size of the message to be analyzed 
- * @param pRsp          pointer to the response data structure
- * 
- * @returns Error indicator
-*/
-teSCI_ERROR _SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8MsgSize, tsRESPONSE *pRsp);
-
-
+void SCIReceive (uint8_t *pui8RecBuf, uint8_t ui8ByteCount);
 
 #endif //_SCIMASTER_H_
