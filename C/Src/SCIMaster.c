@@ -32,12 +32,12 @@
  *****************************************************************************/
 static tsSCI_MASTER sSciMaster = tsSCI_MASTER_DEFAULTS;
 
-const uint8_t ui8_byteLength[7] = {1,1,2,2,4,4,4};
+// const uint8_t ui8_byteLength[7] = {1,1,2,2,4,4,4};
 
 /******************************************************************************
  * Function declarations
  *****************************************************************************/
-
+void SCIMasterInit (void)
 void SCIMasterSM (void)
 {
     teSCI_ERROR eError = eSCI_ERROR_NONE;
@@ -50,10 +50,10 @@ void SCIMasterSM (void)
         case ePROTOCOL_SENDING:
 
             if (sSciMaster.sDatalink.tState != eDATALINK_TSTATE_READY)
-                SCIDatalinkTransmit(&sSciMaster.sDatalink, &sSciMaster.sTxFIFO);
+                SCIDatalinkTransmitStateMachine(&sSciMaster.sDatalink);
             
             // Transition to next protocol state if tx is ready
-            if (sSciMaster.sDatalink.tState == eDATALINK_TSTATE_READY)
+            else
             {
                 // Reset Datalink Tx State
                 SCIDatalinkAcknowledgeTx(&sSciMaster.sDatalink);
@@ -77,17 +77,19 @@ void SCIMasterSM (void)
 
         case ePROTOCOL_EVALUATING:
             {
-                tsRESPONSE sRsp = tsRESPONSE_DEFAULT;
+                tsRESPONSE sRsp = tsRESPONSE_DEFAULTS;
+                uint8_t *pui8Buf;
+                uint8_t ui8DframeLen = readBuf(&sSciMaster.sRxFIFO, &pui8Buf);
 
                 // Parse the response
-                SCIMasterResponseParser(&sSciMaster.ui8RxBuffer, sSciMaster.sRxFIFO.i16_bufIdx + 1, &sRsp);
+                if (sSciMaster.ui8RecMode == SCI_RECEIVE_MODE_TRANSFER)
+                    SCIMasterResponseParser(pui8Buf, ui8DframeLen, &sRsp);
+                else if (sSciMaster.ui8RecMode == SCI_RECEIVE_MODE_STREAM)
+                    SCIMasterStreamParser(pui8Buf, ui8DframeLen, &sRsp);
 
-                
-
+                // Process the response
+                SCITransferControl(&sSciMaster.sSCITransfer, sRsp);
             }
-
-            
-            
             break;
 
         default:
@@ -111,4 +113,65 @@ void SCIReceive (uint8_t *pui8RecBuf, uint8_t ui8ByteCount)
 
         ui8ByteCount--;
     }
+}
+
+//=============================================================================
+void SCIInitiateStreamReceive (uint32_t ui32ByteCount)
+{
+    sSciMaster.ui8RecMode = SCI_RECEIVE_MODE_STREAM;
+    sSciMaster.sDatalink.sRxInfo.ui32BytesToGo = ui32ByteCount;
+}
+
+//=============================================================================
+void SCIFinishStreamReceive (void)
+{
+    sSciMaster.ui8RecMode = SCI_RECEIVE_MODE_TRANSFER;
+    sSciMaster.sDatalink.sRxInfo.ui32BytesToGo = 0;
+}
+
+//=============================================================================
+void SCIInitiateRequest (tsREQUEST sReq)
+{
+    // Prepare transmission buffer
+    flushBuf(&sSciMaster.sTxFIFO);
+
+    // Assemble message
+    if (SCIMasterRequestBuilder(sSciMaster.sTxFIFO.pui8_bufPtr, sSciMaster.sTxFIFO.ui8_bufSpace, sReq) == eSCI_ERROR_NONE)
+    {
+        SCIDatalinkTransmit(&sSciMaster.sDatalink, &sSciMaster.sTxFIFO);
+
+        sSciMaster.eProtocolState = ePROTOCOL_SENDING;
+    }
+    else
+    {
+        // TODO: What to do on error?
+        ;
+    }
+}
+
+//=============================================================================
+void SCIFinishTransfer (void)
+{
+    sSciMaster.eProtocolState = ePROTOCOL_IDLE;
+}
+
+//=============================================================================
+void SCIRequestGetVar (int16_t i16VarNum)
+{
+    // Request generation by the Transfer control module
+    SCITransferStart(&sSciMaster.sSCITransfer, eREQUEST_TYPE_GETVAR, i16VarNum, NULL, 0);
+}
+
+//=============================================================================
+void SCIRequestSetVar (int16_t i16VarNum, tuREQUESTVALUE uVal)
+{
+    // Request generation by the Transfer control module
+    SCITransferStart(&sSciMaster.sSCITransfer, eREQUEST_TYPE_SETVAR, i16VarNum, &uVal, 1);
+}
+
+//=============================================================================
+void SCIRequestCommand (int16_t i16CmdNum, tuREQUESTVALUE *puValArr, uint8_t ui8ArgNum)
+{
+    // Request generation by the Transfer control module
+    SCITransferStart(&sSciMaster.sSCITransfer, eREQUEST_TYPE_COMMAND, i16CmdNum, puValArr, ui8ArgNum);
 }

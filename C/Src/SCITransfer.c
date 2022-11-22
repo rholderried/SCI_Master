@@ -34,10 +34,6 @@ void SCITransferStart (tsSCI_TRANSFER *psSciTransfer, teREQUEST_TYPE eReqType, i
     sReq.uValArr        = uVal;
     sReq.ui8ValArrLen   = ui8ArgNum;
 
-    psSciTransfer->sTransferInfo.ui32ReceivedDataCnt = 0;
-    psSciTransfer->sTransferInfo.ui32TransferCnt = 0;
-    psSciTransfer->sTransferInfo.ui32ExpectedDataCnt = 0;
-
     if (psSciTransfer->sCallbacks.RequestCB != NULL)
         psSciTransfer->sCallbacks.RequestCB(sReq);
 
@@ -54,85 +50,163 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
     switch (sRsp.eReqType)
     {
         case eREQUEST_TYPE_SETVAR:
-            eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.SetVarCB((uint8_t)sRsp.eReqAck, sRsp.i16Num);
+            eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.SetVarCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, sRsp.ui16ErrNum);
+
+            if (eTransferAck != eTRANSFER_ACK_REPEAT_REQUEST)
+                psSciTransfer->sCallbacks.FinishTransferCB();
+            else
+                ; // TODO: Repeat?
             break;
         
         case eREQUEST_TYPE_GETVAR:
-            eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.GetVarCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, sRsp.uValArr[0].ui32_hex);
+            eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.GetVarCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, sRsp.uValArr[0].ui32_hex, sRsp.ui16ErrNum);
+
+            if (eTransferAck != eTRANSFER_ACK_REPEAT_REQUEST)
+                psSciTransfer->sCallbacks.FinishTransferCB();
+            else
+                ; // TODO: Repeat?
+
             break;
 
         case eREQUEST_TYPE_COMMAND:
-            if (sRsp.eReqAck == eREQUEST_ACK_STATUS_SUCCESS_DATA)
+
+            switch (sRsp.eReqAck)
             {
-                // Generate a transfer value buffer and copy data
-                // In first message
-                if (psSciTransfer->sTransferInfo.ui32TransferCnt == 0)
+                case eREQUEST_ACK_STATUS_SUCCESS_DATA:
+
+                    // Generate a transfer value buffer and copy data
+                    // In first message
+                    if (psSciTransfer->sTransferInfo.ui32TransferCnt == 0)
+                    {
+                        psSciTransfer->sTransferInfo.ui32ExpectedDataCnt = sRsp.ui32DataLength;
+
+                        // Allocate the memory for the COMMAND results
+                        psSciTransfer->sTransferInfo.uTransferResults = malloc(psSciTransfer->sTransferInfo.ui32ExpectedDataCnt * sizeof(tuRESPONSEVALUE));
+
+                        // TODO: Handling of not enough memory ?!?
+                        if(psSciTransfer->sTransferInfo.uTransferResults == NULL)
+                            return false;
+                    }
+
+                    // Copy buffer values into the transfer memory
+                    memcpy(&psSciTransfer->sTransferInfo.uTransferResults[psSciTransfer->sTransferInfo.ui32ReceivedDataCnt], 
+                            sRsp.uValArr, 
+                            sRsp.ui8ResponseDataLength * sizeof(tuRESPONSEVALUE));
+
+                    psSciTransfer->sTransferInfo.ui32ReceivedDataCnt += sRsp.ui8ResponseDataLength;
+
+                    // Increment number of COMMAND transfers
+                    psSciTransfer->sTransferInfo.ui32TransferCnt++;
+
+                    // All command transfers ready
+                    if (sRsp.ui32DataLength == psSciTransfer->sTransferInfo.ui32ReceivedDataCnt)
+                    {
+                        // Callback invocation
+                        eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.CommandCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, psSciTransfer->sTransferInfo.uTransferResults, psSciTransfer->sTransferInfo.ui32ReceivedDataCnt, sRsp.ui16ErrNum);
+
+                        // Free data memory
+                        free(psSciTransfer->sTransferInfo.uTransferResults);
+
+                        // Reset the count variables
+                        psSciTransfer->sTransferInfo.ui32ReceivedDataCnt = 0;
+                        psSciTransfer->sTransferInfo.ui32TransferCnt = 0;
+                        psSciTransfer->sTransferInfo.ui32ExpectedDataCnt = 0;
+
+                        if (eTransferAck != eTRANSFER_ACK_REPEAT_REQUEST)
+                            psSciTransfer->sCallbacks.FinishTransferCB();
+                        else
+                            ; // TODO: Repeat?
+                    }
+                    // Invoke command again to get the remaining data
+                    else
+                    {
+                        // For all consecutive transfers, parameters do not have to be passed.
+                        psSciTransfer->sTransferInfo.sReq.ui8ValArrLen = 0;
+
+                        psSciTransfer->sCallbacks.RequestCB(psSciTransfer->sTransferInfo.sReq);
+                    }
+                    break;
+
+                // Upstream invocation
+                case eREQUEST_ACK_STATUS_SUCCESS_UPSTREAM:
                 {
+                    tsREQUEST sUpstreamRequest = tsREQUEST_DEFAULTS;
+
+                    // Allocate memory for the upstream data
+                    psSciTransfer->sTransferInfo.pui8UpstreamBuffer = malloc(sRsp.ui32DataLength);
+
+                    // TODO: What to do if memory allocation failed?
+                    if (psSciTransfer->sTransferInfo.pui8UpstreamBuffer == NULL)
+                        return false;
+
                     psSciTransfer->sTransferInfo.ui32ExpectedDataCnt = sRsp.ui32DataLength;
 
-                    // Allocate the memory for the COMMAND results
-                    psSciTransfer->sTransferInfo.uTransferResults = malloc(psSciTransfer->sTransferInfo.ui32ExpectedDataCnt * sizeof(tuRESPONSEVALUE));
+                    // Switch the receive mode to stream
+                    psSciTransfer->sCallbacks.InitiateStreamCB(psSciTransfer->sTransferInfo.ui32ExpectedDataCnt);
 
-                    // TODO: Handling of not enough memory ?!?
-                    if(psSciTransfer->sTransferInfo.uTransferResults == NULL)
-                        return false;
+                    // Generate new upstream request message
+                    sUpstreamRequest.eReqType = eREQUEST_TYPE_UPSTREAM;
+                    sUpstreamRequest.i16Num = psSciTransfer->sTransferInfo.sReq.i16Num;
+
+                    // Initiate the upstream request
+                    psSciTransfer->sCallbacks.RequestCB(sUpstreamRequest);
+
+                    psSciTransfer->sTransferInfo.sReq = sUpstreamRequest;
+
+                    break;
                 }
 
-                // Copy buffer values into the transfer memory
-                memcpy(&psSciTransfer->sTransferInfo.uTransferResults[psSciTransfer->sTransferInfo.ui32ReceivedDataCnt], 
-                        sRsp.uValArr, 
-                        sRsp.ui8ResponseDataLength * sizeof(tuRESPONSEVALUE));
+                // In case of a regular COMMAND without result values or an error
+                default:
+                    eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.CommandCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, NULL, 0, sRsp.ui16ErrNum);
+                    
+                    psSciTransfer->sCallbacks.FinishTransferCB();
+                    break;
 
-                psSciTransfer->sTransferInfo.ui32ReceivedDataCnt += sRsp.ui8ResponseDataLength;
-
-                // Increment number of COMMAND transfers
-                psSciTransfer->sTransferInfo.ui32TransferCnt++;
-
-                // All command transfers ready
-                if (sRsp.ui32DataLength == psSciTransfer->sTransferInfo.ui32ReceivedDataCnt)
-                {
-                    // Callback invocation
-                    eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.CommandCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, psSciTransfer->sTransferInfo.uTransferResults, psSciTransfer->sTransferInfo.ui32ReceivedDataCnt);
-
-                    // Free data memory
-                    free(psSciTransfer->sTransferInfo.uTransferResults);
-                }
-                // Invoke command again to get the remaining data
-                else
-                {
-                    // For all consecutive transfers, parameters do not have to be passed.
-                    psSciTransfer->sTransferInfo.sReq.ui8ValArrLen = 0;
-
-                    psSciTransfer->sCallbacks.RequestCB(psSciTransfer->sTransferInfo.sReq);
-                }
-
-            }
-            // Upstream invocation
-            else if (sRsp.eReqAck == eREQUEST_ACK_STATUS_SUCCESS_DATA)
-            {
-
+            // TODO: Transfer handling depending on eTransferAck
             }
             break;
-    }
-
-    // switch (psSciTransfer->eTransferState)
-    // {
-    //     case eTRANSFER_STATE_IDLE:
-    //         break;
-
-    //     case eTRANSFER_STATE_BUSY:
-
-    //         if ()
-
-    //         break;
-
-    //     case eTRANSFER_STATE_READY:
-
-    //         psSciTransfer->eTransferState = eTRANSFER_STATE_IDLE;
-    //         break;
         
-    //     default:
-    //         break;
-    // }
+        case eREQUEST_TYPE_UPSTREAM:
+
+            // Copy transfer data from receive buffer into upstream memory
+            memcpy(&psSciTransfer->sTransferInfo.pui8UpstreamBuffer[psSciTransfer->sTransferInfo.ui32ReceivedDataCnt], 
+                    sRsp.pui8Raw, sRsp.ui8ResponseDataLength);
+            
+            psSciTransfer->sTransferInfo.ui32ReceivedDataCnt += sRsp.ui8ResponseDataLength;
+
+            // There is additional data to transfer
+            if (psSciTransfer->sTransferInfo.ui32ReceivedDataCnt < psSciTransfer->sTransferInfo.ui32ExpectedDataCnt)
+            {
+                // New request
+                psSciTransfer->sCallbacks.RequestCB(psSciTransfer->sTransferInfo.sReq);
+            }
+            // All data arrived
+            else
+            {
+                // Switch back receive mode
+                psSciTransfer->sCallbacks.FinishStreamCB();
+
+                // Call the Upstream CB
+                psSciTransfer->sCallbacks.UpstreamCB(psSciTransfer->sTransferInfo.sReq.i16Num, 
+                                                        psSciTransfer->sTransferInfo.pui8UpstreamBuffer,
+                                                        psSciTransfer->sTransferInfo.ui32ReceivedDataCnt);
+
+                // Reset the count variables
+                psSciTransfer->sTransferInfo.ui32ReceivedDataCnt = 0;
+                psSciTransfer->sTransferInfo.ui32TransferCnt = 0;
+                psSciTransfer->sTransferInfo.ui32ExpectedDataCnt = 0;
+
+                // Free the formerly allocated memory
+                free(psSciTransfer->sTransferInfo.pui8UpstreamBuffer);
+
+                psSciTransfer->sCallbacks.FinishTransferCB();
+            }
+            break;
+        
+        default:
+            break;
+
+    }
 }
 

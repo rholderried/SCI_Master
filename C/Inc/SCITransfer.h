@@ -20,7 +20,6 @@
 #include <stddef.h>
 #include "SCIMasterConfig.h"
 #include "SCICommon.h"
-#include "CommandStucture.h"
 
 /******************************************************************************
  * Defines
@@ -98,13 +97,14 @@ typedef struct
     int16_t                 i16Num;                             /*!< ID Number. (Reflects REQUEST ID number).*/
     teREQUEST_TYPE          eReqType;                           /*!< Response type inherited from REQUEST type.*/
     teREQUEST_ACKNOWLEDGE   eReqAck;                            /*!< Acknowledge returned by the REQUEST callback.*/
+    uint8_t                 ui8ResponseDataLength;              /*!< Data length within actual response */
     tuRESPONSEVALUE         uValArr[MAX_NUM_RESPONSE_VALUES];   /*!< Pointer to the value array.*/                           /*!< Response value.*/
+    uint8_t                 *pui8Raw;                           /*!< Raw data of the response dataframe */
     uint16_t                ui16ErrNum;                         /*!< Returned error number */
     uint32_t                ui32DataLength;                     /*!< Whole length of the data to follow */
-    uint8_t                 ui8ResponseDataLength;              /*!< Data length within actual response */
 }tsRESPONSE;
 
-#define tsRESPONSE_DEFAULTS         {0, eREQUEST_TYPE_NONE, eREQUEST_ACK_STATUS_UNKNOWN, {{.ui32_hex = 0}}, 0, 0, 0}
+#define tsRESPONSE_DEFAULTS         {0, eREQUEST_TYPE_NONE, eREQUEST_ACK_STATUS_UNKNOWN, 0, {{.ui32_hex = 0}}, NULL, 0, 0}
 
 typedef struct
 {
@@ -113,7 +113,7 @@ typedef struct
     uint32_t        ui32ReceivedDataCnt;
     uint32_t        ui32TransferCnt;
     tuRESPONSEVALUE *uTransferResults;
-    uint8_t         *ui8UpstreamBuffer;
+    uint8_t         *pui8UpstreamBuffer;
 }tsTRANSFER_INFO;
 
 #define tsTRANSFER_INFO_DEFAULTS {tsREQUEST_DEFAULTS, 0, NULL}
@@ -125,11 +125,15 @@ typedef struct
 
     struct
     {
+        uint8_t     (*SetVarCB)(uint8_t ui8Ack, int16_t i16Num, uint16_t ui16ErrNum);
+        uint8_t     (*GetVarCB)(uint8_t ui8Ack, int16_t i16Num, uint32_t ui32Data, uint16_t ui16ErrNum);
+        uint8_t     (*CommandCB)(uint8_t ui8Ack, int16_t i16Num, uint32_t *pui32Data, uint8_t ui8DataCnt, uint16_t ui16ErrNum);
+        uint8_t     (*UpstreamCB)(int16_t i16Num, uint8_t *pui8Data, uint32_t ui32ByteCnt);
+
         void        (*RequestCB)(tsREQUEST sReq);
-        uint8_t     (*SetVarCB)(uint8_t ui8Ack, int16_t i16Num);
-        uint8_t     (*GetVarCB)(uint8_t ui8Ack, int16_t i16Num, uint32_t ui32Data);
-        uint8_t     (*CommandCB)(uint8_t ui8Ack, int16_t i16Num, uint32_t *pui32Data, uint8_t ui8DataCnt);
-        uint8_t     (*UpstreamCB)(uint8_t ui8Ack, int16_t i16Num, uint8_t *pui8Data, uint32_t ui32ByteCnt);
+        void        (*InitiateStreamCB)(uint32_t ui32ByteCount);
+        void        (*FinishStreamCB)(void);
+        void        (*FinishTransferCB)(void);
     }sCallbacks;
 }tsSCI_TRANSFER;
 
@@ -141,7 +145,17 @@ typedef struct
 
 void SCITransferStart (tsSCI_TRANSFER *psSciTransfer, teREQUEST_TYPE eReqType, int16_t i16CmdNum, tuREQUESTVALUE *uVal, uint8_t ui8ArgNum);
 
-void SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp);
+/** \brief Handles the transfer responses according to the protocol mechanisms.
+ * 
+ * TODO:
+ * - What is going to be done if the device returns "UNKNOWN" ?
+ * 
+ * @param psSciTransfer Pointer to the transfer data
+ * @param sRsp          Response data that has just been arrived
+ * 
+ * @returns Error indicator
+ * */
+bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp);
 
 
 

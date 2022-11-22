@@ -84,18 +84,25 @@ typedef struct
     {
         uint8_t * pui8_buf;
         uint8_t ui8_bufLen;
-    }txInfo;
+    }sTxInfo;
+
+    struct
+    {
+        uint32_t ui32BytesToGo;
+        uint8_t ui8MsgByteCnt;
+    }sRxInfo;
 
 }tsDATALINK;
 
-#define tsDATALINK_DEFAULTS {eDATALINK_RSTATE_IDLE, eDATALINK_TSTATE_IDLE, eDATALINK_DBGSTATE_IDLE, {NULL}, NULL, NULL, NULL, {NULL, 0}}
+#define tsDATALINK_DEFAULTS {eDATALINK_RSTATE_IDLE, eDATALINK_TSTATE_IDLE, eDATALINK_DBGSTATE_IDLE, {NULL}, NULL, NULL, NULL, {NULL, 0}, {0,0}}
 
 
 
 /******************************************************************************
  * Function declarations
  *****************************************************************************/
-void SCIDataLinkReceive(tsDATALINK *p_inst, tsFIFO_BUF *p_rBuf, uint8_t ui8_data);
+void SCIDataLinkReceiveTransfer(tsDATALINK *p_inst, tsFIFO_BUF *p_rBuf, uint8_t ui8_data);
+void SCIDataLinkReceiveStream(tsDATALINK *p_inst, tsFIFO_BUF *p_rBuf, uint8_t ui8_data);
 teDATALINK_RECEIVE_STATE SCIDatalinkGetReceiveState(tsDATALINK *p_inst);
 teDATALINK_TRANSMIT_STATE SCIDatalinkGetTransmitState(tsDATALINK *p_inst);
 

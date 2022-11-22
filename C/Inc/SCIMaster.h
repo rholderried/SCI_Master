@@ -80,6 +80,7 @@ typedef struct
     tsFIFO_BUF sRxFIFO;  /*!< RX buffer management. */ 
     tsFIFO_BUF sTxFIFO;  /*!< TX buffer management. */
 
+    uint8_t ui8RecMode;  /*!< Current receive mode of the protocol */
     tsDATALINK     sDatalink;
     // SCI_COMMANDS sciCommands;   /*!< Commands variable structure. */
 
@@ -93,6 +94,7 @@ typedef struct
     {0},{0}, \
     tsFIFO_BUF_DEFAULTS, \
     tsFIFO_BUF_DEFAULTS, \
+    SCI_RECEIVE_MODE_TRANSFER, \
     tsDATALINK_DEFAULTS, \
     tsSCI_TRANSFER_DEFAULTS \
 }
@@ -100,6 +102,9 @@ typedef struct
 /******************************************************************************
  * Function declarations
  *****************************************************************************/
+/** \brief Initializes the SCI Master.*/
+void SCIMasterInit (void);
+
 /** \brief Main state machine for the SCI master.
  * 
  * Handles the SCI protocol.
@@ -122,5 +127,47 @@ void _SCIMasterQueryNonBlocking (teREQUEST_TYPE eCmdType, int16_t i16CmdNum, tuR
  * @param ui8ByteCount  Number of bytes to process
 */
 void SCIReceive (uint8_t *pui8RecBuf, uint8_t ui8ByteCount);
+
+/** \brief Switch the receive mode of the protocol.
+ * 
+ * @param ui32ByteCount    Number of bytes that are to be expected from the stream
+*/
+void SCIInitiateStreamReceive (uint32_t ui32ByteCount);
+
+/** \brief End Stream receive immediately.*/
+void SCIFinishStreamReceive (void);
+
+/** \brief Initiate a SCI request.
+ * 
+ * @param sReq Request data structure
+*/
+void SCIInitiateRequest (tsREQUEST sReq);
+
+/** \brief Conclude the SCI transfer.*/
+void SCIFinishTransfer (void);
+
+/******************************************************************************
+ * Interface functions
+ *****************************************************************************/
+/** \brief Initiate a GETVAR request
+ * 
+ * @param i16VarNum Variable number to request
+ */
+void SCIRequestGetVar (int16_t i16VarNum);
+
+/** \brief Initiate a SETVAR request
+ * 
+ * @param i16VarNum Variable number to request
+ * @param uVal      Variable value to set
+ */
+void SCIRequestSetVar (int16_t i16VarNum, tuREQUESTVALUE uVal);
+
+/** \brief Initiate a COMMAND request
+ * 
+ * @param i16CmdNum Variable number to request
+ * @param puValArr  Pointer to the value array to transmit
+ * @param ui8ArgNum Number of elements in the value array
+ */
+void SCIRequestCommand (int16_t i16CmdNum, tuREQUESTVALUE *puValArr, uint8_t ui8ArgNum);
 
 #endif //_SCIMASTER_H_

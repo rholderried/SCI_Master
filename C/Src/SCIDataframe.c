@@ -19,6 +19,7 @@
 #include "SCICommon.h"
 #include "SCIDataframe.h"
 #include "SCITransfer.h"
+#include "Helpers.h"
 
 /******************************************************************************
  * Global variable definition
@@ -51,12 +52,15 @@ teSCI_ERROR SCIMasterRequestBuilder(uint8_t *pui8Buf, uint8_t *pui8Size, tsREQUE
     *pui8Buf++ = cmdIdArr[sReq.eReqType];
     (*pui8Size)++;
 
-    for(uint8_t i = 0; i < MAX_NUM_REQUEST_VALUES; i++)
+    for(uint8_t i = 0; i < sReq.ui8ValArrLen; i++)
     {
+        if (i >= MAX_NUM_REQUEST_VALUES)
+            break;
+
         #ifdef VALUE_MODE_HEX
-        ui8AsciiSize = (uint8_t)hexToStrDword(ui8DatBuf, &sReq.uValArr[0].ui32_hex, true);
+        ui8AsciiSize = (uint8_t)hexToStrDword(ui8DatBuf, &sReq.uValArr[i].ui32_hex, true);
         #else
-        ui8AsciiSize = ftoa(ui8DatBuf, sReq.val.f_float, true);
+        ui8AsciiSize = ftoa(ui8DatBuf, sReq.uValArr[i].f_float, true);
         #endif
 
         if((*pui8Size + ui8AsciiSize) < TX_PACKET_LENGTH)
@@ -88,12 +92,13 @@ teSCI_ERROR SCIMasterRequestBuilder(uint8_t *pui8Buf, uint8_t *pui8Size, tsREQUE
 }
 
 //=============================================================================
-teSCI_ERROR SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8DataframeLen, tsRESPONSE *pRsp)
+teSCI_ERROR SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8DataframeLen, tsRESPONSE *psRsp)
 {
     uint8_t i = 0;
     bool bAckPresent = false;
     int8_t i8Ack;
     int16_t i16BytesToGo = (int16_t)ui8DataframeLen;
+    psRsp->pui8Raw = pui8Buf;
     
     // uint8_t cmdIdx  = 0;
     // COMMAND cmd     = COMMAND_DEFAULT;
@@ -103,33 +108,33 @@ teSCI_ERROR SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8DataframeLen, t
 
         if (pui8Buf[i] == GETVAR_IDENTIFIER)
         {
-            pRsp->eReqType = eREQUEST_TYPE_GETVAR;
+            psRsp->eReqType = eREQUEST_TYPE_GETVAR;
             break;
         }
         else if (pui8Buf[i] == SETVAR_IDENTIFIER)
         {
-            pRsp->eReqType = eREQUEST_TYPE_SETVAR;
+            psRsp->eReqType = eREQUEST_TYPE_SETVAR;
             break;
         }
         else if (pui8Buf[i] == COMMAND_IDENTIFIER)
         {
-            pRsp->eReqType = eREQUEST_TYPE_COMMAND;
+            psRsp->eReqType = eREQUEST_TYPE_COMMAND;
             break;
         }
         else if (pui8Buf[i] == UPSTREAM_IDENTIFIER)
         {
-            pRsp->eReqType = eREQUEST_TYPE_UPSTREAM;
+            psRsp->eReqType = eREQUEST_TYPE_UPSTREAM;
             break;
         }
         else if (pui8Buf[i] == DOWNSTREAM_IDENTIFIER)
         {
-            pRsp->eReqType = eREQUEST_TYPE_DOWNSTREAM;
+            psRsp->eReqType = eREQUEST_TYPE_DOWNSTREAM;
             break;
         }      
     }
 
     // No valid command identifier found (TODO: Error handling)
-    if (pRsp->eReqType == eREQUEST_TYPE_NONE)
+    if (psRsp->eReqType == eREQUEST_TYPE_NONE)
         return eSCI_ERROR_COMMAND_IDENTIFIER_NOT_FOUND;
     
     /*******************************************************************************************
@@ -150,9 +155,9 @@ teSCI_ERROR SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8DataframeLen, t
         #ifdef VALUE_MODE_HEX
         if(!strToHex(pui8NumStr, &ui32_tmp))
            return eSCI_ERROR_NUMBER_CONVERSION_FAILED; 
-        pRsp->i16Num = *(int16_t*)(&ui32_tmp);
+        psRsp->i16Num = *(int16_t*)(&ui32_tmp);
         #else
-        pRsp->i16Num = (int16_t)(atoi((char*)pui8NumStr));
+        psRsp->i16Num = (int16_t)(atoi((char*)pui8NumStr));
         #endif
 
         free(pui8NumStr);
@@ -171,7 +176,7 @@ teSCI_ERROR SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8DataframeLen, t
 
     if (i8Ack >= 0)
     {
-        pRsp->eReqAck = (teREQUEST_ACKNOWLEDGE)i8Ack;
+        psRsp->eReqAck = (teREQUEST_ACKNOWLEDGE)i8Ack;
         // For i: Take care of the ';'
         i += 4;
         i16BytesToGo -= 4;
@@ -210,30 +215,30 @@ teSCI_ERROR SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8DataframeLen, t
 
         // Assign the number to the data field
         
-        switch (pRsp->eReqAck)
+        switch (psRsp->eReqAck)
         {
             case eREQUEST_ACK_STATUS_SUCCESS_DATA:
             case eREQUEST_ACK_STATUS_SUCCESS_UPSTREAM:
                 #ifdef VALUE_MODE_HEX
-                pRsp->ui32DataLength = uNum.ui32_hex;
+                psRsp->ui32DataLength = uNum.ui32_hex;
                 #else
-                pRsp->ui32DataLength = uNum.f_float;
+                psRsp->ui32DataLength = uNum.f_float;
                 #endif
                 break;
 
             case eREQUEST_ACK_STATUS_ERROR:
                 #ifdef VALUE_MODE_HEX
-                pRsp->ui16ErrNum = uNum.ui32_hex;
+                psRsp->ui16ErrNum = uNum.ui32_hex;
                 #else
-                pRsp->ui16ErrNum = uNum.f_float;
+                psRsp->ui16ErrNum = uNum.f_float;
                 #endif
                 break;
 
             default:
                 // Save GetVar result
-                if (pRsp->eReqType == eREQUEST_TYPE_GETVAR)
+                if (psRsp->eReqType == eREQUEST_TYPE_GETVAR)
                 {
-                    pRsp->uValArr[0] = uNum;
+                    psRsp->uValArr[0] = uNum;
                 }
                 // Don't handle eREQUEST_ACK_STATUS_SUCCESS of a COMMAND here, because all
                 // data afterwards is to be threated as return values.
@@ -241,7 +246,7 @@ teSCI_ERROR SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8DataframeLen, t
         }
 
         // let i correspond to the position of the char after the first data number
-        if (pRsp->eReqType != eREQUEST_TYPE_COMMAND)
+        if (psRsp->eReqType != eREQUEST_TYPE_COMMAND)
         {
             i += (j + 1);
             i16BytesToGo -= (j + 1);
@@ -281,10 +286,10 @@ teSCI_ERROR SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8DataframeLen, t
             p_valStr[ui8_valueLen] = '\0';
 
             #ifdef VALUE_MODE_HEX
-            if(!strToHex(p_valStr, &pRsp->uValArr[ui8_numOfVals - 1].ui32_hex))
+            if(!strToHex(p_valStr, &psRsp->uValArr[ui8_numOfVals - 1].ui32_hex))
                 return eSCI_ERROR_PARAMETER_CONVERSION_FAILED;
             #else
-            pRsp->uValArr[ui8_numOfVals - 1].f_float = atof((char*)p_valStr);
+            psRsp->uValArr[ui8_numOfVals - 1].f_float = atof((char*)p_valStr);
             #endif
 
             free(p_valStr);
@@ -295,11 +300,21 @@ teSCI_ERROR SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8DataframeLen, t
             ui8_valueLen = 0;
             j++;
         }
-        pRsp->ui8ResponseDataLength = ui8_numOfVals;
+        psRsp->ui8ResponseDataLength = ui8_numOfVals;
 
-        // if (ui8_numOfVals != pRsp->ui32DataLength)
+        // if (ui8_numOfVals != psRsp->ui32DataLength)
         //     return eSCI_ERROR_EXPECTED_DATALENGTH_NOT_MET;
     }
+
+    return eSCI_ERROR_NONE;
+}
+
+//=============================================================================
+teSCI_ERROR SCIMasterStreamParser (uint8_t* pui8Buf, uint8_t ui8DataframeLen, tsRESPONSE *psRsp)
+{
+    psRsp->eReqType = eREQUEST_TYPE_UPSTREAM;
+    psRsp->ui8ResponseDataLength = ui8DataframeLen;
+    psRsp->pui8Raw = pui8Buf;
 
     return eSCI_ERROR_NONE;
 }
@@ -329,14 +344,14 @@ int16_t _CheckAcknowledge (uint8_t *pui8Buf, uint8_t i16BytesToGo)
         return REQUEST_ACKNOWLEDGE_NOT_FOUND;
 }
 
-//=============================================================================
-void ReturnDataLength (uint8_t *puiBuf)
-{
+// //=============================================================================
+// void ReturnDataLength (uint8_t *puiBuf)
+// {
     
-}
+// }
 
-//=============================================================================
-void GetReturnValues (uint8_t *puiBuf, tuRESPONSEVALUE *puRspValArr)
-{
+// //=============================================================================
+// void GetReturnValues (uint8_t *puiBuf, tuRESPONSEVALUE *puRspValArr)
+// {
     
-}
+// }
