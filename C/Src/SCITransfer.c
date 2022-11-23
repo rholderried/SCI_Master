@@ -25,7 +25,7 @@
 /******************************************************************************
  * Function definitions
  *****************************************************************************/
-void SCITransferStart (tsSCI_TRANSFER *psSciTransfer, teREQUEST_TYPE eReqType, int16_t i16CmdNum, tuREQUESTVALUE *uVal, uint8_t ui8ArgNum)
+bool SCITransferStart (tsSCI_TRANSFER *psSciTransfer, teREQUEST_TYPE eReqType, int16_t i16CmdNum, tuREQUESTVALUE *uVal, uint8_t ui8ArgNum)
 {
     tsREQUEST sReq = tsREQUEST_DEFAULTS;
     // Take over the arguments
@@ -34,8 +34,8 @@ void SCITransferStart (tsSCI_TRANSFER *psSciTransfer, teREQUEST_TYPE eReqType, i
     sReq.uValArr        = uVal;
     sReq.ui8ValArrLen   = ui8ArgNum;
 
-    if (psSciTransfer->sCallbacks.RequestCB != NULL)
-        psSciTransfer->sCallbacks.RequestCB(sReq);
+    if(!psSciTransfer->sCallbacks.RequestCB(sReq))
+        return false;
 
     psSciTransfer->sTransferInfo.sReq = sReq;
 
@@ -56,7 +56,7 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
             }
 
             if (eTransferAck != eTRANSFER_ACK_REPEAT_REQUEST)
-                psSciTransfer->sCallbacks.FinishTransferCB();
+                psSciTransfer->sCallbacks.ReleaseProtocolCB();
             else
                 ; // TODO: Repeat?
             break;
@@ -68,7 +68,7 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
             }
 
             if (eTransferAck != eTRANSFER_ACK_REPEAT_REQUEST)
-                psSciTransfer->sCallbacks.FinishTransferCB();
+                psSciTransfer->sCallbacks.ReleaseProtocolCB();
             else
                 ; // TODO: Repeat?
 
@@ -123,7 +123,7 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
                         psSciTransfer->sTransferInfo.ui32ExpectedDataCnt = 0;
 
                         if (eTransferAck != eTRANSFER_ACK_REPEAT_REQUEST)
-                            psSciTransfer->sCallbacks.FinishTransferCB();
+                            psSciTransfer->sCallbacks.ReleaseProtocolCB();
                         else
                             ; // TODO: Repeat?
                     }
@@ -133,6 +133,7 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
                         // For all consecutive transfers, parameters do not have to be passed.
                         psSciTransfer->sTransferInfo.sReq.ui8ValArrLen = 0;
 
+                        psSciTransfer->sCallbacks.ReleaseProtocolCB();
                         psSciTransfer->sCallbacks.RequestCB(psSciTransfer->sTransferInfo.sReq);
                     }
                     break;
@@ -159,6 +160,7 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
                     sUpstreamRequest.i16Num = psSciTransfer->sTransferInfo.sReq.i16Num;
 
                     // Initiate the upstream request
+                    psSciTransfer->sCallbacks.ReleaseProtocolCB();
                     psSciTransfer->sCallbacks.RequestCB(sUpstreamRequest);
 
                     psSciTransfer->sTransferInfo.sReq = sUpstreamRequest;
@@ -173,7 +175,7 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
                         eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.CommandCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, NULL, 0, sRsp.ui16ErrNum);
                     }
                     
-                    psSciTransfer->sCallbacks.FinishTransferCB();
+                    psSciTransfer->sCallbacks.ReleaseProtocolCB();
                     break;
 
             // TODO: Transfer handling depending on eTransferAck
@@ -216,7 +218,7 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
                 // Free the formerly allocated memory
                 free(psSciTransfer->sTransferInfo.pui8UpstreamBuffer);
 
-                psSciTransfer->sCallbacks.FinishTransferCB();
+                psSciTransfer->sCallbacks.ReleaseProtocolCB();
             }
             break;
         

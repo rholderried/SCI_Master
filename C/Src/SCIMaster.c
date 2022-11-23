@@ -32,8 +32,6 @@
  *****************************************************************************/
 static tsSCI_MASTER sSciMaster = tsSCI_MASTER_DEFAULTS;
 
-// const uint8_t ui8_byteLength[7] = {1,1,2,2,4,4,4};
-
 /******************************************************************************
  * Function declarations
  *****************************************************************************/
@@ -42,7 +40,7 @@ void SCIMasterInit (tsSCI_MASTER_CALLBACKS sCallbacks)
     // Connect the internal callbacks
     sSciMaster.sSCITransfer.sCallbacks.InitiateStreamCB = SCIInitiateStreamReceive;
     sSciMaster.sSCITransfer.sCallbacks.FinishStreamCB = SCIFinishStreamReceive;
-    sSciMaster.sSCITransfer.sCallbacks.FinishTransferCB = SCIFinishTransfer;
+    sSciMaster.sSCITransfer.sCallbacks.ReleaseProtocolCB = SCIReleaseProtocol;
     sSciMaster.sSCITransfer.sCallbacks.RequestCB = SCIInitiateRequest;
 
     // Connect the external callbacks
@@ -59,6 +57,7 @@ void SCIMasterInit (tsSCI_MASTER_CALLBACKS sCallbacks)
     fifoBufInit(&sSciMaster.sTxFIFO, sSciMaster.ui8TxBuffer, TX_PACKET_LENGTH);
 }
 
+//=============================================================================
 void SCIMasterSM (void)
 {
     teSCI_ERROR eError = eSCI_ERROR_NONE;
@@ -156,9 +155,14 @@ void SCIFinishStreamReceive (void)
 }
 
 //=============================================================================
-void SCIInitiateRequest (tsREQUEST sReq)
+bool SCIInitiateRequest (tsREQUEST sReq)
 {
     uint8_t ui8Size = 0;
+
+    // Interface busy -> Don't start transmission
+    if (sSciMaster.eProtocolState != ePROTOCOL_IDLE)
+        return false;
+
     // Prepare transmission buffer
     flushBuf(&sSciMaster.sTxFIFO);
 
@@ -176,10 +180,12 @@ void SCIInitiateRequest (tsREQUEST sReq)
         // TODO: What to do on error?
         ;
     }
+
+    return true;
 }
 
 //=============================================================================
-void SCIFinishTransfer (void)
+void SCIReleaseProtocol (void)
 {
     sSciMaster.eProtocolState = ePROTOCOL_IDLE;
 }

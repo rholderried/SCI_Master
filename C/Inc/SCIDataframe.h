@@ -37,11 +37,6 @@
 #define DOWNSTREAM_IDENTIFIER   '<'
 
 #define REQUEST_ACKNOWLEDGE_NOT_FOUND   -1
-// #define REQUEST_ACKNOWLEDGE_SUCCESS     0
-// #define REQUEST_ACKNOWLEDGE_DATA        1
-// #define REQUEST_ACKNOWLEDGE_UPSTREAM    2
-// #define REQUEST_ACKNOWLEDGE_ERROR       3
-// #define REQUEST_ACKNOWLEDGE_UNKNOWN     4
 
 /******************************************************************************
  * Type definitions

@@ -14,7 +14,6 @@
 /******************************************************************************
  * Includes
  *****************************************************************************/
-// #include "SCICommon.h"
 
 /******************************************************************************
  * Defines
@@ -25,8 +24,5 @@
 // Mode configuration
 #define SEND_MODE_BYTE_BY_BYTE
 #define VALUE_MODE_HEX
-
-// SCI error offset (SCI currently defines 11 errors)
-#define SCI_ERROR_OFFSET    0x100
 
 #endif // _SCIMASTERCONFIG_H_

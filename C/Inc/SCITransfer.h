@@ -130,10 +130,10 @@ typedef struct
         uint8_t     (*CommandCB)(uint8_t ui8Ack, int16_t i16Num, uint32_t *pui32Data, uint8_t ui8DataCnt, uint16_t ui16ErrNum);
         uint8_t     (*UpstreamCB)(int16_t i16Num, uint8_t *pui8Data, uint32_t ui32ByteCnt);
 
-        void        (*RequestCB)(tsREQUEST sReq);
+        bool        (*RequestCB)(tsREQUEST sReq);
         void        (*InitiateStreamCB)(uint32_t ui32ByteCount);
         void        (*FinishStreamCB)(void);
-        void        (*FinishTransferCB)(void);
+        void        (*ReleaseProtocolCB)(void);
     }sCallbacks;
 }tsSCI_TRANSFER;
 
@@ -143,7 +143,17 @@ typedef struct
  * Function declarations
  *****************************************************************************/
 
-void SCITransferStart (tsSCI_TRANSFER *psSciTransfer, teREQUEST_TYPE eReqType, int16_t i16CmdNum, tuREQUESTVALUE *uVal, uint8_t ui8ArgNum);
+/** \brief Builds the request and starts the transmission.
+ * 
+ * @param psSciTransfer Pointer to the transfer data
+ * @param eReqType      Request type of the transfer
+ * @param i16CmdNum     Request number of the transfer
+ * @param uVal          Pointer to the array of parameters to transmit
+ * @param ui8Argnum     Number of parameters to transmit
+ * 
+ * @returns Error indicator
+ * */
+bool SCITransferStart (tsSCI_TRANSFER *psSciTransfer, teREQUEST_TYPE eReqType, int16_t i16CmdNum, tuREQUESTVALUE *uVal, uint8_t ui8ArgNum);
 
 /** \brief Handles the transfer responses according to the protocol mechanisms.
  * 

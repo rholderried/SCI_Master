@@ -80,6 +80,7 @@ typedef struct
 
 #define tsSCI_MASTER_CALLBACKS_DEFAULTS {NULL}
 
+/** \brief SCI Master main structure */
 typedef struct
 {
     tsSCI_MASTER_VERSION sVersion;
@@ -154,11 +155,13 @@ void SCIFinishStreamReceive (void);
 /** \brief Initiate a SCI request.
  * 
  * @param sReq Request data structure
+ * 
+ * @returns Success indicator
 */
-void SCIInitiateRequest (tsREQUEST sReq);
+bool SCIInitiateRequest (tsREQUEST sReq);
 
-/** \brief Conclude the SCI transfer.*/
-void SCIFinishTransfer (void);
+/** \brief Releases the SCI protocol into IDLE state.*/
+void SCIReleaseProtocol (void);
 
 /******************************************************************************
  * Interface functions
