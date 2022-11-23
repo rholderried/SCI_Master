@@ -66,6 +66,7 @@ teSCI_ERROR SCIMasterRequestBuilder(uint8_t *pui8Buf, uint8_t *pui8Size, tsREQUE
         if((*pui8Size + ui8AsciiSize) < TX_PACKET_LENGTH)
         {
             memcpy(pui8Buf, ui8DatBuf, ui8AsciiSize);
+            pui8Buf += ui8AsciiSize;
             (*pui8Size) += ui8AsciiSize;
             ui8DataCnt++;
 
@@ -182,11 +183,12 @@ teSCI_ERROR SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8DataframeLen, t
         i16BytesToGo -= 4;
     }
 
-    // Message could be complete here
+    // Message could be complete here (COMMAND without results)
     if (i16BytesToGo <= 0)
         return eSCI_ERROR_NONE;
 
-    // Get the number after the acknowledge
+    // Get the control number after the acknowledge (Which can only happen if there is an acknowledge in the message)
+    if (i8Ack >= 0)
     {
         uint8_t j = 0;
         tuREQUESTVALUE uNum = {.ui32_hex = 0};
@@ -194,7 +196,7 @@ teSCI_ERROR SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8DataframeLen, t
 
         while (j < i16BytesToGo)
         {
-            if (pui8Buf[j] == ';')
+            if (pui8Buf[j + i] == ';')
                 break;
 
             j++;
@@ -245,12 +247,17 @@ teSCI_ERROR SCIMasterResponseParser(uint8_t* pui8Buf, uint8_t ui8DataframeLen, t
                 break;
         }
 
-        // let i correspond to the position of the char after the first data number
-        if (psRsp->eReqType != eREQUEST_TYPE_COMMAND)
-        {
-            i += (j + 1);
-            i16BytesToGo -= (j + 1);
-        }
+        //let i correspond to the position of the char after the first data number
+        i += (j + 1);
+        i16BytesToGo -= (j + 1);
+    }
+    // If we get into this else, that means we are dealing with a consecutive Command Data message,
+    // which has no acknowledge, only data
+    else
+    {
+        // We need to set this field here. Otherwise, the SCITransferControl function does not
+        // know what to do with this message
+        psRsp->eReqAck = eREQUEST_ACK_STATUS_SUCCESS_DATA;
     }
 
     /*******************************************************************************************

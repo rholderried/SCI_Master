@@ -7,12 +7,14 @@
             "command": "C:\\MinGW64\\bin\\gcc.exe",
             "args": [
                 "-g",
-                "${workspaceFolder}\\C\\*.c",
+                "${workspaceFolder}\\C\\Src\\*.c",
                 "${workspaceFolder}\\C\\Test\\*.c",
                 "-o",
                 "${workspaceFolder}\\C\\Test\\UnitTest.exe",
                 "-I",
-                "${workspaceFolder}\\C",
+                "${workspaceFolder}\\C\\Inc",
+                "-I",
+                "${workspaceFolder}\\C\\Inc\\config",
                 "-I",
                 "${workspaceFolder}\\C\\Test"
             ],

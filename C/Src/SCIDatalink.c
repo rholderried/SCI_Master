@@ -233,5 +233,5 @@ void SCIDatalinkAcknowledgeTx(tsDATALINK *p_inst)
 //=============================================================================
 void SCIDatalinkStartRx(tsDATALINK *p_inst)
 {
-    p_inst->tState = eDATALINK_RSTATE_WAIT_STX;
+    p_inst->rState = eDATALINK_RSTATE_WAIT_STX;
 }

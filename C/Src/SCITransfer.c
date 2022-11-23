@@ -44,13 +44,16 @@ void SCITransferStart (tsSCI_TRANSFER *psSciTransfer, teREQUEST_TYPE eReqType, i
 
 bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
 {
-    teTRANSFER_ACK eTransferAck;
+    teTRANSFER_ACK eTransferAck = eTRANSFER_ACK_ABORT;
     bool ret = true;
 
     switch (sRsp.eReqType)
     {
         case eREQUEST_TYPE_SETVAR:
-            eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.SetVarCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, sRsp.ui16ErrNum);
+            if (psSciTransfer->sCallbacks.GetVarCB != NULL)
+            {
+                eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.SetVarCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, sRsp.ui16ErrNum);
+            }
 
             if (eTransferAck != eTRANSFER_ACK_REPEAT_REQUEST)
                 psSciTransfer->sCallbacks.FinishTransferCB();
@@ -59,7 +62,10 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
             break;
         
         case eREQUEST_TYPE_GETVAR:
-            eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.GetVarCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, sRsp.uValArr[0].ui32_hex, sRsp.ui16ErrNum);
+            if (psSciTransfer->sCallbacks.GetVarCB != NULL)
+            {
+                eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.GetVarCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, sRsp.uValArr[0].ui32_hex, sRsp.ui16ErrNum);
+            }
 
             if (eTransferAck != eTRANSFER_ACK_REPEAT_REQUEST)
                 psSciTransfer->sCallbacks.FinishTransferCB();
@@ -99,10 +105,14 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
                     psSciTransfer->sTransferInfo.ui32TransferCnt++;
 
                     // All command transfers ready
-                    if (sRsp.ui32DataLength == psSciTransfer->sTransferInfo.ui32ReceivedDataCnt)
+                    if (psSciTransfer->sTransferInfo.ui32ExpectedDataCnt == 
+                        psSciTransfer->sTransferInfo.ui32ReceivedDataCnt)
                     {
                         // Callback invocation
-                        eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.CommandCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, psSciTransfer->sTransferInfo.uTransferResults, psSciTransfer->sTransferInfo.ui32ReceivedDataCnt, sRsp.ui16ErrNum);
+                        if (psSciTransfer->sCallbacks.CommandCB != NULL)
+                        {
+                            eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.CommandCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, &psSciTransfer->sTransferInfo.uTransferResults[0].ui32_hex, psSciTransfer->sTransferInfo.ui32ReceivedDataCnt, sRsp.ui16ErrNum);
+                        }
 
                         // Free data memory
                         free(psSciTransfer->sTransferInfo.uTransferResults);
@@ -158,7 +168,10 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
 
                 // In case of a regular COMMAND without result values or an error
                 default:
-                    eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.CommandCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, NULL, 0, sRsp.ui16ErrNum);
+                    if (psSciTransfer->sCallbacks.CommandCB != NULL)
+                    {
+                        eTransferAck = (teTRANSFER_ACK)psSciTransfer->sCallbacks.CommandCB((uint8_t)sRsp.eReqAck, sRsp.i16Num, NULL, 0, sRsp.ui16ErrNum);
+                    }
                     
                     psSciTransfer->sCallbacks.FinishTransferCB();
                     break;
@@ -188,9 +201,12 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
                 psSciTransfer->sCallbacks.FinishStreamCB();
 
                 // Call the Upstream CB
-                psSciTransfer->sCallbacks.UpstreamCB(psSciTransfer->sTransferInfo.sReq.i16Num, 
+                if (psSciTransfer->sCallbacks.UpstreamCB != NULL)
+                {
+                    psSciTransfer->sCallbacks.UpstreamCB(psSciTransfer->sTransferInfo.sReq.i16Num, 
                                                         psSciTransfer->sTransferInfo.pui8UpstreamBuffer,
                                                         psSciTransfer->sTransferInfo.ui32ReceivedDataCnt);
+                }
 
                 // Reset the count variables
                 psSciTransfer->sTransferInfo.ui32ReceivedDataCnt = 0;
@@ -208,5 +224,6 @@ bool SCITransferControl (tsSCI_TRANSFER *psSciTransfer, tsRESPONSE sRsp)
             break;
 
     }
+    return true;
 }
 

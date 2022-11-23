@@ -116,7 +116,7 @@ typedef struct
     uint8_t         *pui8UpstreamBuffer;
 }tsTRANSFER_INFO;
 
-#define tsTRANSFER_INFO_DEFAULTS {tsREQUEST_DEFAULTS, 0, NULL}
+#define tsTRANSFER_INFO_DEFAULTS {tsREQUEST_DEFAULTS, 0, 0, 0, NULL, NULL}
 
 typedef struct
 {

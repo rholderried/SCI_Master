@@ -37,7 +37,28 @@ static tsSCI_MASTER sSciMaster = tsSCI_MASTER_DEFAULTS;
 /******************************************************************************
  * Function declarations
  *****************************************************************************/
-void SCIMasterInit (void)
+void SCIMasterInit (tsSCI_MASTER_CALLBACKS sCallbacks)
+{
+    // Connect the internal callbacks
+    sSciMaster.sSCITransfer.sCallbacks.InitiateStreamCB = SCIInitiateStreamReceive;
+    sSciMaster.sSCITransfer.sCallbacks.FinishStreamCB = SCIFinishStreamReceive;
+    sSciMaster.sSCITransfer.sCallbacks.FinishTransferCB = SCIFinishTransfer;
+    sSciMaster.sSCITransfer.sCallbacks.RequestCB = SCIInitiateRequest;
+
+    // Connect the external callbacks
+    sSciMaster.sSCITransfer.sCallbacks.GetVarCB = sCallbacks.GetVarExternalCB;
+    sSciMaster.sSCITransfer.sCallbacks.SetVarCB = sCallbacks.SetVarExternalCB;
+    sSciMaster.sSCITransfer.sCallbacks.CommandCB = sCallbacks.CommandExternalCB;
+    sSciMaster.sSCITransfer.sCallbacks.UpstreamCB = sCallbacks.UpstreamExternalCB;
+    sSciMaster.sDatalink.txBlockingCallback = sCallbacks.BlockingTxExternalCB;
+    sSciMaster.sDatalink.txNonBlockingCallback = sCallbacks.NonBlockingTxExternalCB;
+    sSciMaster.sDatalink.txGetBusyStateCallback = sCallbacks.GetTxBusyStateExternalCB;
+
+    // Configure data structures
+    fifoBufInit(&sSciMaster.sRxFIFO, sSciMaster.ui8RxBuffer, RX_PACKET_LENGTH);
+    fifoBufInit(&sSciMaster.sTxFIFO, sSciMaster.ui8TxBuffer, TX_PACKET_LENGTH);
+}
+
 void SCIMasterSM (void)
 {
     teSCI_ERROR eError = eSCI_ERROR_NONE;
@@ -66,12 +87,17 @@ void SCIMasterSM (void)
                 // Enable data receive
                 SCIDatalinkStartRx(&sSciMaster.sDatalink);
             }    
+            break;
 
         case ePROTOCOL_RECEIVING:
 
             // Wait until all data has been received
             if (sSciMaster.sDatalink.rState == eDATALINK_RSTATE_PENDING)
+            {
+                SCIDatalinkAcknowledgeRx(&sSciMaster.sDatalink);
+
                 sSciMaster.eProtocolState = ePROTOCOL_EVALUATING;
+            }
 
             break;
 
@@ -98,20 +124,20 @@ void SCIMasterSM (void)
 }
 
 //=============================================================================
-void _SCIMasterQueryNonBlocking (teREQUEST_TYPE eReqType, int16_t i16CmdNum, tuREQUESTVALUE *uVal, int16_t i16ArgNum)
+void SCIReceive (uint8_t *pui8RecBuf, uint16_t ui16ByteCount)
 {
+    uint8_t i = 0;
 
-}
-
-//=============================================================================
-void SCIReceive (uint8_t *pui8RecBuf, uint8_t ui8ByteCount)
-{
-    while (ui8ByteCount)
+    while (ui16ByteCount)
     {
         // Call the datalink-level data receiver
-        SCIDataLinkReceive(&sSciMaster.sDatalink, &sSciMaster.sRxFIFO, *pui8RecBuf);
+        if (sSciMaster.ui8RecMode == SCI_RECEIVE_MODE_TRANSFER)
+            SCIDataLinkReceiveTransfer(&sSciMaster.sDatalink, &sSciMaster.sRxFIFO, pui8RecBuf[i]);
+        else if (sSciMaster.ui8RecMode == SCI_RECEIVE_MODE_STREAM)
+            SCIDataLinkReceiveStream(&sSciMaster.sDatalink, &sSciMaster.sRxFIFO, pui8RecBuf[i]);
 
-        ui8ByteCount--;
+        i++;
+        ui16ByteCount--;
     }
 }
 
@@ -132,12 +158,15 @@ void SCIFinishStreamReceive (void)
 //=============================================================================
 void SCIInitiateRequest (tsREQUEST sReq)
 {
+    uint8_t ui8Size = 0;
     // Prepare transmission buffer
     flushBuf(&sSciMaster.sTxFIFO);
 
     // Assemble message
-    if (SCIMasterRequestBuilder(sSciMaster.sTxFIFO.pui8_bufPtr, sSciMaster.sTxFIFO.ui8_bufSpace, sReq) == eSCI_ERROR_NONE)
+    if (SCIMasterRequestBuilder(sSciMaster.sTxFIFO.pui8_bufPtr, &ui8Size, sReq) == eSCI_ERROR_NONE)
     {
+        increaseBufIdx(&sSciMaster.sTxFIFO, ui8Size);
+
         SCIDatalinkTransmit(&sSciMaster.sDatalink, &sSciMaster.sTxFIFO);
 
         sSciMaster.eProtocolState = ePROTOCOL_SENDING;

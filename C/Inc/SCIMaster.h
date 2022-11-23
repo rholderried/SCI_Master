@@ -65,9 +65,20 @@ typedef enum
 
 typedef struct
 {
-    void (*commandCallback)(teREQUEST_TYPE eReqType, int16_t i16ReqNum, tuREQUESTVALUE *uVal, int16_t i16ArgNum);
+    // Result external callbacks
+    uint8_t     (*SetVarExternalCB)(uint8_t ui8Ack, int16_t i16Num, uint16_t ui16ErrNum);
+    uint8_t     (*GetVarExternalCB)(uint8_t ui8Ack, int16_t i16Num, uint32_t ui32Data, uint16_t ui16ErrNum);
+    uint8_t     (*CommandExternalCB)(uint8_t ui8Ack, int16_t i16Num, uint32_t *pui32Data, uint8_t ui8DataCnt, uint16_t ui16ErrNum);
+    uint8_t     (*UpstreamExternalCB)(int16_t i16Num, uint8_t *pui8Data, uint32_t ui32ByteCnt);
+
+    // Transmission related external callbacks
+    void        (*BlockingTxExternalCB)(uint8_t* pui8Buf, uint8_t ui8Len);
+    uint8_t     (*NonBlockingTxExternalCB)(uint8_t* pui8Buf, uint8_t ui8Len);
+    bool        (*GetTxBusyStateExternalCB)(void);
 
 }tsSCI_MASTER_CALLBACKS;
+
+#define tsSCI_MASTER_CALLBACKS_DEFAULTS {NULL}
 
 typedef struct
 {
@@ -102,8 +113,11 @@ typedef struct
 /******************************************************************************
  * Function declarations
  *****************************************************************************/
-/** \brief Initializes the SCI Master.*/
-void SCIMasterInit (void);
+/** \brief Initializes the SCI Master.
+ * 
+ * @param sCallbacks    External functions to call by the SCI Master.
+*/
+void SCIMasterInit (tsSCI_MASTER_CALLBACKS sCallbacks);
 
 /** \brief Main state machine for the SCI master.
  * 
@@ -119,14 +133,14 @@ void SCIMasterSM (void);
  * @param i16Num    Command number
  * @param uVal      Pointer to the values to be sent
 */
-void _SCIMasterQueryNonBlocking (teREQUEST_TYPE eCmdType, int16_t i16CmdNum, tuREQUESTVALUE *uVal, int16_t i16ArgNum);
+// void _SCIMasterQueryNonBlocking (teREQUEST_TYPE eCmdType, int16_t i16CmdNum, tuREQUESTVALUE *uVal, int16_t i16ArgNum);
 
 /** \brief High level receive routine.
  * 
  * @param pui8RecBuf    Pointer to the receive buffer or FIFO
  * @param ui8ByteCount  Number of bytes to process
 */
-void SCIReceive (uint8_t *pui8RecBuf, uint8_t ui8ByteCount);
+void SCIReceive (uint8_t *pui8RecBuf, uint16_t ui8ByteCount);
 
 /** \brief Switch the receive mode of the protocol.
  * 
