@@ -17,12 +17,6 @@
 /******************************************************************************
  * defines
  *****************************************************************************/
-#define EEPROM_BYTE_ADDRESSABLE      1
-#define EEPROM_WORD_ADDRESSABLE      2
-#define EEPROM_LONG_ADDRESSABLE      4
-
-#define SCI_RECEIVE_MODE_TRANSFER   0
-#define SCI_RECEIVE_MODE_STREAM     1
 
 /******************************************************************************
  * Type definitions
@@ -39,7 +33,6 @@ typedef enum
     eSCI_ERROR_EXPECTED_DATALENGTH_NOT_MET,
     eSCI_ERROR_MESSAGE_EXCEEDS_TX_BUFFER_SIZE,
     eSCI_ERROR_FEATURE_NOT_IMPLEMENTED
-
 }teSCI_ERROR;
 
 

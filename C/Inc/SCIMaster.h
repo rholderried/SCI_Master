@@ -10,8 +10,11 @@
  *
  * <b> History </b>
  * 	- 2022-11-17 - File creation -
+ * 
+ * <b> TODOs </b>
+ * @todo Response Timeout
+ * @todo Clean Error tracking and response
  *****************************************************************************/
-
 
 #ifndef _SCIMASTER_H_
 #define _SCIMASTER_H_
@@ -34,11 +37,8 @@
 #define SCI_MASTER_VERSION_MINOR    5
 #define SCI_MASTER_REVISION         0
 
-#define GETVAR_IDENTIFIER       '?'
-#define SETVAR_IDENTIFIER       '!'
-#define COMMAND_IDENTIFIER      ':'
-#define UPSTREAM_IDENTIFIER     '>'
-#define DOWNSTREAM_IDENTIFIER   '<'
+#define SCI_RECEIVE_MODE_TRANSFER   0
+#define SCI_RECEIVE_MODE_STREAM     1
 
 /******************************************************************************
  * Type definitions

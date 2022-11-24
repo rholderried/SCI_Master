@@ -25,11 +25,6 @@
  * Defines
  *****************************************************************************/
 
-#define SCI_MASTER
-#define SCI_MASTER_VERSION_MAJOR    0
-#define SCI_MASTER_VERSION_MINOR    5
-#define SCI_MASTER_REVISION         0
-
 #define GETVAR_IDENTIFIER       '?'
 #define SETVAR_IDENTIFIER       '!'
 #define COMMAND_IDENTIFIER      ':'

@@ -6,6 +6,10 @@
  *
  * <b> History </b>
  * 	- 2022-11-17 - Copy from SCI
+ *
+ * <b> TODOs </b>
+ * @todo Addressable clients
+ * @todo Checksum
  *****************************************************************************/
 #ifndef _SCIDATALINK_H_
 #define _SCIDATALINK_H_
@@ -111,8 +115,5 @@ void SCIDatalinkTransmitStateMachine(tsDATALINK *p_inst);
 void SCIDatalinkAcknowledgeRx(tsDATALINK *p_inst);
 void SCIDatalinkAcknowledgeTx(tsDATALINK *p_inst);
 void SCIDatalinkStartRx(tsDATALINK *p_inst);
-
-
-
 
 #endif // _SCIDATALINK_H_
