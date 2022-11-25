@@ -1,0 +1,25 @@
+{
+    "name": "SCI_Master",
+    "version": "0.5.0",
+    "description": "SCI_Master",
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/rholderried/SCI_Master.git"
+    },
+    "authors":
+    [
+      {
+        "name": "Roman Holderried",
+        "email": "roman.holderried@dlr.de"
+      }
+    ],
+    "frameworks": "*",
+    "platforms": "*",
+    "build": {
+        "unflags": "-std=gnu++11",
+        "flags": "-std=c99",
+        "srcDir":"C/Src",
+        "includeDir":"C/Inc"
+    }
+  }
