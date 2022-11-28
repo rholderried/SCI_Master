@@ -3,6 +3,7 @@
         "string.h": "c",
         "scimaster.h": "c",
         "helpers.h": "c",
-        "scitransfer.h": "c"
+        "scitransfer.h": "c",
+        "stddef.h": "c"
     }
 }

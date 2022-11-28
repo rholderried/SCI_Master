@@ -63,13 +63,18 @@ typedef enum
     ePROTOCOL_RECEIVING     = 3,
 }tePROTOCOL_STATE;
 
+typedef uint8_t (*SETVAR_CB)(uint8_t ui8Ack, int16_t i16Num, uint16_t ui16ErrNum);
+typedef uint8_t (*GETVAR_CB)(uint8_t ui8Ack, int16_t i16Num, uint32_t ui32Data, uint16_t ui16ErrNum);
+typedef uint8_t (*COMMAND_CB)(uint8_t ui8Ack, int16_t i16Num, uint32_t *pui32Data, uint8_t ui8DataCnt, uint16_t ui16ErrNum);
+typedef uint8_t (*UPSTEAM_CB)(int16_t i16Num, uint8_t *pui8Data, uint32_t ui32ByteCnt);
+
 typedef struct
 {
     // Result external callbacks
-    uint8_t     (*SetVarExternalCB)(uint8_t ui8Ack, int16_t i16Num, uint16_t ui16ErrNum);
-    uint8_t     (*GetVarExternalCB)(uint8_t ui8Ack, int16_t i16Num, uint32_t ui32Data, uint16_t ui16ErrNum);
-    uint8_t     (*CommandExternalCB)(uint8_t ui8Ack, int16_t i16Num, uint32_t *pui32Data, uint8_t ui8DataCnt, uint16_t ui16ErrNum);
-    uint8_t     (*UpstreamExternalCB)(int16_t i16Num, uint8_t *pui8Data, uint32_t ui32ByteCnt);
+    SETVAR_CB SetVarExternalCB;
+    GETVAR_CB GetVarExternalCB;
+    COMMAND_CB CommandExternalCB;
+    UPSTEAM_CB UpstreamExternalCB;
 
     // Transmission related external callbacks
     void        (*BlockingTxExternalCB)(uint8_t* pui8Buf, uint8_t ui8Len);
