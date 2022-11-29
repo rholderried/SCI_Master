@@ -21,6 +21,8 @@
 /******************************************************************************
  * Type definitions
  *****************************************************************************/
+
+/** \brief SCI Master errors */
 typedef enum
 {
     eSCI_ERROR_NONE = 0,
@@ -34,6 +36,24 @@ typedef enum
     eSCI_ERROR_MESSAGE_EXCEEDS_TX_BUFFER_SIZE,
     eSCI_ERROR_FEATURE_NOT_IMPLEMENTED
 }teSCI_ERROR;
+
+/** \brief Request acknowledge enumeration */
+typedef enum
+{
+    eREQUEST_ACK_STATUS_SUCCESS             = 0,
+    eREQUEST_ACK_STATUS_SUCCESS_DATA        = 1,
+    eREQUEST_ACK_STATUS_SUCCESS_UPSTREAM    = 2,
+    eREQUEST_ACK_STATUS_ERROR               = 3,
+    eREQUEST_ACK_STATUS_UNKNOWN             = 4
+}teREQUEST_ACKNOWLEDGE;
+
+/** \brief Return value of the Transfer callbacks*/
+typedef enum
+{
+    eTRANSFER_ACK_SUCCESS = 0,
+    eTRANSFER_ACK_REPEAT_REQUEST,
+    eTRANSFER_ACK_ABORT
+}teTRANSFER_ACK;
 
 
 

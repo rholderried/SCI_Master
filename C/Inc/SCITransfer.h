@@ -56,29 +56,7 @@ typedef enum
     eREQUEST_TYPE_DOWNSTREAM    = 5
 }teREQUEST_TYPE;
 
-/** \brief Request acknowledge enumeration */
-typedef enum
-{
-    eREQUEST_ACK_STATUS_SUCCESS             = 0,
-    eREQUEST_ACK_STATUS_SUCCESS_DATA        = 1,
-    eREQUEST_ACK_STATUS_SUCCESS_UPSTREAM    = 2,
-    eREQUEST_ACK_STATUS_ERROR               = 3,
-    eREQUEST_ACK_STATUS_UNKNOWN             = 4
-}teREQUEST_ACKNOWLEDGE;
 
-typedef enum
-{
-    eTRANSFER_STATE_IDLE    = 0,
-    eTRANSFER_STATE_BUSY,
-    eTRANSFER_STATE_READY
-}teTRANSFER_STATES;
-
-typedef enum
-{
-    eTRANSFER_ACK_SUCCESS,
-    eTRANSFER_ACK_REPEAT_REQUEST,
-    eTRANSFER_ACK_ABORT
-}teTRANSFER_ACK;
 
 /** \brief REQUEST structure declaration.*/
 typedef struct
@@ -120,15 +98,14 @@ typedef struct
 
 typedef struct
 {
-    teTRANSFER_STATES   eTransferState;
     tsTRANSFER_INFO     sTransferInfo;
 
     struct
     {
-        uint8_t     (*SetVarCB)(uint8_t ui8Ack, int16_t i16Num, uint16_t ui16ErrNum);
-        uint8_t     (*GetVarCB)(uint8_t ui8Ack, int16_t i16Num, uint32_t ui32Data, uint16_t ui16ErrNum);
-        uint8_t     (*CommandCB)(uint8_t ui8Ack, int16_t i16Num, uint32_t *pui32Data, uint8_t ui8DataCnt, uint16_t ui16ErrNum);
-        uint8_t     (*UpstreamCB)(int16_t i16Num, uint8_t *pui8Data, uint32_t ui32ByteCnt);
+        teTRANSFER_ACK  (*SetVarCB)(teREQUEST_ACKNOWLEDGE eAck, int16_t i16Num, uint16_t ui16ErrNum);
+        teTRANSFER_ACK  (*GetVarCB)(teREQUEST_ACKNOWLEDGE eAck, int16_t i16Num, uint32_t ui32Data, uint16_t ui16ErrNum);
+        teTRANSFER_ACK  (*CommandCB)(teREQUEST_ACKNOWLEDGE eAck, int16_t i16Num, uint32_t *pui32Data, uint8_t ui8DataCnt, uint16_t ui16ErrNum);
+        teTRANSFER_ACK  (*UpstreamCB)(int16_t i16Num, uint8_t *pui8Data, uint32_t ui32ByteCnt);
 
         bool        (*RequestCB)(tsREQUEST sReq);
         void        (*InitiateStreamCB)(uint32_t ui32ByteCount);
@@ -137,7 +114,7 @@ typedef struct
     }sCallbacks;
 }tsSCI_TRANSFER;
 
-#define tsSCI_TRANSFER_DEFAULTS {eTRANSFER_STATE_IDLE, tsTRANSFER_INFO_DEFAULTS, {NULL}}
+#define tsSCI_TRANSFER_DEFAULTS {tsTRANSFER_INFO_DEFAULTS, {NULL}}
 
 /******************************************************************************
  * Function declarations

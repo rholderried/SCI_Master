@@ -24,9 +24,15 @@
  *****************************************************************************/
 #include <stdint.h>
 #include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "SCITransfer.h"
 #include "Buffer.h"
 #include "SCIDataLink.h"
+#include "SCICommon.h"
 
 /******************************************************************************
  * Defines
@@ -63,10 +69,10 @@ typedef enum
     ePROTOCOL_RECEIVING     = 3,
 }tePROTOCOL_STATE;
 
-typedef uint8_t (*SETVAR_CB)(uint8_t ui8Ack, int16_t i16Num, uint16_t ui16ErrNum);
-typedef uint8_t (*GETVAR_CB)(uint8_t ui8Ack, int16_t i16Num, uint32_t ui32Data, uint16_t ui16ErrNum);
-typedef uint8_t (*COMMAND_CB)(uint8_t ui8Ack, int16_t i16Num, uint32_t *pui32Data, uint8_t ui8DataCnt, uint16_t ui16ErrNum);
-typedef uint8_t (*UPSTEAM_CB)(int16_t i16Num, uint8_t *pui8Data, uint32_t ui32ByteCnt);
+typedef teTRANSFER_ACK (*SETVAR_CB)(teREQUEST_ACKNOWLEDGE eAck, int16_t i16Num, uint16_t ui16ErrNum);
+typedef teTRANSFER_ACK (*GETVAR_CB)(teREQUEST_ACKNOWLEDGE eAck, int16_t i16Num, uint32_t ui32Data, uint16_t ui16ErrNum);
+typedef teTRANSFER_ACK (*COMMAND_CB)(teREQUEST_ACKNOWLEDGE eAck, int16_t i16Num, uint32_t *pui32Data, uint8_t ui8DataCnt, uint16_t ui16ErrNum);
+typedef teTRANSFER_ACK (*UPSTREAM_CB)(int16_t i16Num, uint8_t *pui8Data, uint32_t ui32ByteCnt);
 
 typedef struct
 {
@@ -74,7 +80,7 @@ typedef struct
     SETVAR_CB SetVarExternalCB;
     GETVAR_CB GetVarExternalCB;
     COMMAND_CB CommandExternalCB;
-    UPSTEAM_CB UpstreamExternalCB;
+    UPSTREAM_CB UpstreamExternalCB;
 
     // Transmission related external callbacks
     void        (*BlockingTxExternalCB)(uint8_t* pui8Buf, uint8_t ui8Len);
@@ -191,5 +197,9 @@ void SCIRequestSetVar (int16_t i16VarNum, tuREQUESTVALUE uVal);
  * @param ui8ArgNum Number of elements in the value array
  */
 void SCIRequestCommand (int16_t i16CmdNum, tuREQUESTVALUE *puValArr, uint8_t ui8ArgNum);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_SCIMASTER_H_
