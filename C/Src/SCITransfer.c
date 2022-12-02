@@ -6,6 +6,12 @@
  *
  * <b> History </b>
  * 	- 2022-11-21 - File creation 
+ * 
+ * TODOs:
+ * ======
+ * @todo    Proper error handling - What is happening if there is a transfer
+ *          error when handling a multiple-message command (or upstream)?
+ * 
  *****************************************************************************/
 
 /******************************************************************************
