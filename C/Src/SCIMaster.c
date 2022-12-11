@@ -210,3 +210,9 @@ void SCIRequestCommand (int16_t i16CmdNum, tuREQUESTVALUE *puValArr, uint8_t ui8
     // Request generation by the Transfer control module
     SCITransferStart(&sSciMaster.sSCITransfer, eREQUEST_TYPE_COMMAND, i16CmdNum, puValArr, ui8ArgNum);
 }
+
+//=============================================================================
+tePROTOCOL_STATE SCIGetProtocolState (void)
+{
+    return sSciMaster.eProtocolState;
+}

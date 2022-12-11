@@ -198,6 +198,12 @@ void SCIRequestSetVar (int16_t i16VarNum, tuREQUESTVALUE uVal);
  */
 void SCIRequestCommand (int16_t i16CmdNum, tuREQUESTVALUE *puValArr, uint8_t ui8ArgNum);
 
+/** \brief Returns the current protocol state
+ * 
+ * @returns SCI protocol state
+ */
+tePROTOCOL_STATE SCIGetProtocolState (void);
+
 #ifdef __cplusplus
 }
 #endif
